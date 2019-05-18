@@ -1,44 +1,154 @@
-#include "hgimg3.as"
+	#include "hgimg3.as"
 
-	;	3Dモデル描画サンプル
-	;
-	screen 0,640,480,0
+	bgscr 0,ginfo(20),ginfo(21),0,0,0
 	cls 4
 	hgini
 
-	;	テクスチャフォント表示の準備
-	;
-	;setfont 16,16,12,1	; font Tex select(cx,cy,px,mode)
-	;texload "fontchr.bmp"	; フォントテクスチャの登録
+	randomize
 
-	;	Xモデル登録
-	;
-	addxfile m_xmodel,"ak47-2.x"	; モデルを読み込む
-	regobj obj, m_xmodel		; オブジェクトの登録
-	clscolor $FF			; 背景色の設定
-	setpos obj, 0.4,0.3,49.0
-	
+	#define D_MODE 1	;開発モード1で起動
+
+	dir_home = dir_cur
+
+	if (D_MODE == 1){ screen 1,100,100 : gsel 0 }
+
+	ddim x,1
+	ddim y,1
+	ddim z,1
+	ddim mx,1
+	ddim my,1
+	ddim mz,1
+	dim obj,100
+	dim model,100
+	dim tex,100
+	dim emodel,100
+	dim eff,100
+
+	mov = 0.4
+	gun_name = "ak47"
+	chdir dir_home+"/model/"+gun_name
+
+	addxfile m_xmodel,gun_name+".x"
+	regobj gun, m_xmodel
+	clscolor $FF
+	mmload "ak47.wav",0
+
+	chdir dir_home
+
+	texload dir_home+"/image/floor/01.jpg" : tex(0) = stat
+	addmesh model(0),4,4,16,100,100,tex
+	regobj obj(0),model(0)
+	setpos obj(0),0,10,0
+
+	addbox model(1),28,28
+	regobj obj(1),model(1)
+	setpos obj(1),0,0,10
+
+	addeprim emodel(0),EPRIM_CIRCLE2	; エフェクトモデルを作成
+	seteprim emodel(0), 0, 0.2		; りん光部分のサイズ
+	seteprim emodel(0), 1, 0.01		; 頂点数
+	seteprim emodel(0), 2, 0.1		; X倍率
+	seteprim emodel(0), 3, 0.01		; Y倍率
+	seteprim emodel(0), 4, 0.1
+	seteprim emodel(0), 16, 0xffffaa00
+	seteprim emodel(0), 17, 0xaaffcc00
+	seteprim emodel(0), 18, 0x55ffee00
+	seteprim emodel(0), 19, 0x11ffff00
+
+	x = 0.0 : y = 0.0 : z = 0.0
+	walkc = 1.0
+	ww = 0.0
+
+	mouse ginfo(20)/2,ginfo(21)/2
+	mouse -1 : mouse -1
+
 *main
 	stick key,$3ff
 	if key&128 : goto *owari
 
-	hgdraw				; 描画
+	ary = double(ginfo(20)/2-mousex)/1000
+	arx = 0.0
+	if (((crx < M_PI/4) & (mousey < ginfo(21)/2)) | ((crx > -M_PI/4) & (mousey > ginfo(21)/2))){
+		arx = double(ginfo(21)/2-mousey)/1000
+	}
 
-	fprt "HGIMG3 Plugin test",8,8
+	mouse ginfo(20)/2,ginfo(21)/2
+	mouse -1
+
+	addang HGOBJ_CAMERA, arx,ary
+	setpos HGOBJ_CAMERA, x,y,z
+	getang HGOBJ_CAMERA, crx,cry,crz
+
+	getkey ds,16
+
+	if (key & 512){
+		setpos gun, x-sin(cry),y+0.3+sin(walkc)/50,z-cos(cry)
+		setang gun, 0,cry,0
+		mov = 0.2
+		walks = 1
+	} else {
+		if (ds == 1){
+			
+		} else {
+			setpos gun, x+cos(cry+1.2)*1.2,y+0.3+sin(walkc)/50,z-sin(cry+1.2)*1.2
+			setang gun, 0,cry,0
+			mov = 0.4
+			walks = 0
+		}
+	}
+	
+	if (key & 256){
+		if (reloadc == 0){
+			if (key & 512){
+				addang HGOBJ_CAMERA, 0,double(rnd(30))/1000*(rnd(2)*2-1)
+				regobj eff(0),emodel(0)
+				setpos eff(0),x-sin(cry)*4,y+0.27+sin(walkc)/50,z-cos(cry)*4
+				setang eff(0),0,cry,0
+			} else {
+				addang HGOBJ_CAMERA, 0,double(rnd(30))/1000*(rnd(2)*2-1)
+				regobj eff(0),emodel(0)
+				setpos eff(0),x-sin(cry-0.2)*4.1,y+0.27+sin(walkc)/50,z-cos(cry-0.2)*4.1
+				setang eff(0),0,cry,0
+			}
+			mmplay 0
+			reloadc = 10
+			effc = 5
+		}
+	}
+	if (reloadc > 0){ reloadc-- }
+	if (effc >= 0){ effc-- } : if (effc == 0){ delobj eff(0) }
+
+	mx = 0.0 : mz = 0.0
+	getkey up,'W'
+	if (up == 1){ mx -= sin(cry)*mov : mz -= cos(cry)*mov }
+	getkey dw,'S'
+	if (dw == 1){ mx += sin(cry)*mov : mz += cos(cry)*mov }
+	getkey ri,'D'
+	if (ri == 1){ mx += cos(cry)*mov : mz -= sin(cry)*mov }
+	getkey le,'A'
+	if (le == 1){ mx -= cos(cry)*mov : mz += sin(cry)*mov }
+	if (up+dw+ri+le > 0){ walkc += 0.2-0.1*walks }
+
+	x += mx : z += mz
+
+	hgdraw				; 描画
 
 	hgsync 10			; 時間待ち
 
-	;	カメラをカーソルキーで動かす
-	;
-	if key&4 : addpos obj, -0.05, 0.0
-	if key&1 : addpos obj, 0.05, 0.0
-	if key&2 : addpos obj, 0.0, ,0.05
-	if key&8 : addpos obj, 0.0, ,-0.05
-	getpos obj,x,y,z
-	title str(x)+":"+str(y)+":"+str(z)
 
-	;	モデルを回転させる
-	;addang obj,0,0.05,0
+	/* ここから開発用 */
+	if (D_MODE == 1){
+		if (key&4){ ww+=0.001 }
+		if (key&1){ ww-=0.001 }
+		if (key&2){ addpos obj, 0.0, ,0.05 }
+		if (key&8){ addpos obj, 0.0, ,-0.05 }
+		gsel 1,2 : cls
+		mes c
+		mes walkc
+		if (int(walkc)\10 == 0){ c++ }
+		gsel 0
+	}
+	/**/
 
 	goto *main
 
