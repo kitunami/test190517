@@ -1,0 +1,71 @@
+	#include "mod_CharStr.as"
+	#include "mod_fx.as"
+
+	screen  0,ginfo(20),ginfo(21),,0,0
+	Mfx_init
+	size = 1
+
+*start
+	cls
+	font "HGSçsèëëÃ",ginfo(13)/27
+	mes "êîéÆÇì¸óÕ"
+	formula = ""
+	pos 0,ginfo(13)/27
+	mes "y="
+	objmode 2
+	pos ginfo(12)/30,ginfo(13)/27
+	input formula,ginfo(12)-ginfo(12)/30,ginfo(13)/23
+	input size,ginfo(12)-ginfo(12)/30,ginfo(13)/23
+	objsize ginfo(12)/18,ginfo(13)/23
+	button goto "make",*make
+	button goto "end",*esc
+
+	color 200,200,200
+	line 0,ginfo(13)/2,ginfo(12),ginfo(13)/2
+	line ginfo(12)/2,ginfo(13)/9,ginfo(12)/2,ginfo(13)
+	stop
+
+
+*make
+	color 255,255,255 : boxf
+	color 0,0,0
+	pos 0,0
+	mes "êîéÆÇì¸óÕ"
+	pos 0,ginfo(13)/27
+	mes "y="
+
+	color 200,200,200
+	
+	line 0,ginfo(13)/2,ginfo(12),ginfo(13)/2
+	line ginfo(12)/2,ginfo(13)/9,ginfo(12)/2,ginfo(13)
+	color
+
+	Mfx_compile formula, SymbolCode, FigureCode, ErrorCode1
+	ddim list,52
+	Mfx_substitute list,"x",-ginfo(12)/2
+	Mfx_calc yh, SymbolCode, FigureCode, list, ErrorCode2
+	pos 0,ginfo(13)/2-yh*size
+
+	repeat ginfo(12)
+		Mfx_substitute list,"x",double(cnt)/size-ginfo(12)/2/size
+		Mfx_calc yh,SymbolCode, FigureCode, list, ErrorCode2
+		title str(ErrorCode2(0))
+		if (ErrorCode2(0) == 0){
+			line cnt,ginfo(13)/2-yh*size
+		} else {
+			Mfx_substitute list,"x",double(cnt+1)/size-ginfo(12)/2/size
+			Mfx_calc yh,SymbolCode, FigureCode, list, ErrorCode2
+			pos cnt+1,ginfo(13)/2-yh*size
+		}
+
+		await 1
+	loop
+
+	stop
+
+
+	
+
+
+*esc
+	end
